@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_02_135321) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_02_135426) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -73,6 +73,39 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_135321) do
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
   end
 
+  create_table "amenities", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_amenities_on_organization_id"
+  end
+
+  create_table "booking_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "status", default: "pending", null: false
+    t.string "stripe_payment_intent_id"
+    t.bigint "hotel_booking_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hotel_booking_id"], name: "index_booking_payments_on_hotel_booking_id"
+    t.index ["organization_id"], name: "index_booking_payments_on_organization_id"
+  end
+
+  create_table "booking_refunds", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "status", default: "pending", null: false
+    t.text "reason"
+    t.string "stripe_refund_id"
+    t.bigint "booking_payment_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_payment_id"], name: "index_booking_refunds_on_booking_payment_id"
+    t.index ["organization_id"], name: "index_booking_refunds_on_organization_id"
+  end
+
   create_table "friendly_id_slugs", force: :cascade do |t|
     t.string "slug", null: false
     t.integer "sluggable_id", null: false
@@ -83,6 +116,50 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_135321) do
     t.index ["slug", "sluggable_type"], name: "index_friendly_id_slugs_on_slug_and_sluggable_type"
     t.index ["sluggable_id"], name: "index_friendly_id_slugs_on_sluggable_id"
     t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
+  end
+
+  create_table "hotel_bookings", force: :cascade do |t|
+    t.date "starts_at", null: false
+    t.date "ends_at", null: false
+    t.integer "number_of_guests"
+    t.decimal "total_price", precision: 10, scale: 2
+    t.string "status", default: "pending", null: false
+    t.bigint "guest_id", null: false
+    t.bigint "hotel_listing_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["guest_id"], name: "index_hotel_bookings_on_guest_id"
+    t.index ["hotel_listing_id"], name: "index_hotel_bookings_on_hotel_listing_id"
+    t.index ["organization_id"], name: "index_hotel_bookings_on_organization_id"
+  end
+
+  create_table "hotel_listing_amenities", force: :cascade do |t|
+    t.bigint "hotel_listing_id", null: false
+    t.bigint "amenity_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["amenity_id"], name: "index_hotel_listing_amenities_on_amenity_id"
+    t.index ["hotel_listing_id"], name: "index_hotel_listing_amenities_on_hotel_listing_id"
+    t.index ["organization_id"], name: "index_hotel_listing_amenities_on_organization_id"
+  end
+
+  create_table "hotel_listings", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "address"
+    t.string "city"
+    t.string "country"
+    t.decimal "price_per_night", precision: 10, scale: 2
+    t.integer "capacity"
+    t.string "status", default: "available", null: false
+    t.bigint "host_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["host_id"], name: "index_hotel_listings_on_host_id"
+    t.index ["organization_id"], name: "index_hotel_listings_on_organization_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -350,6 +427,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_02_135321) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "amenities", "organizations"
+  add_foreign_key "booking_payments", "hotel_bookings"
+  add_foreign_key "booking_payments", "organizations"
+  add_foreign_key "booking_refunds", "booking_payments"
+  add_foreign_key "booking_refunds", "organizations"
+  add_foreign_key "hotel_bookings", "hotel_listings"
+  add_foreign_key "hotel_bookings", "organizations"
+  add_foreign_key "hotel_bookings", "users", column: "guest_id"
+  add_foreign_key "hotel_listing_amenities", "amenities"
+  add_foreign_key "hotel_listing_amenities", "hotel_listings"
+  add_foreign_key "hotel_listing_amenities", "organizations"
+  add_foreign_key "hotel_listings", "organizations"
+  add_foreign_key "hotel_listings", "users", column: "host_id"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
